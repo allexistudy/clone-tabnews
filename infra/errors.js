@@ -1,9 +1,9 @@
 export class InternalServerError extends Error {
-  constructor({ cause }) {
-    super("An internal server error occurred.", { cause });
+  constructor({ cause, message, statusCode }) {
+    super(message || "An internal server error occurred.", { cause });
     this.name = "InternalServerError";
     this.action = "Contact support.";
-    this.status_code = 500;
+    this.status_code = statusCode || 500;
   }
 
   toJSON() {
@@ -22,6 +22,24 @@ export class MethodNotAllowedError extends Error {
     this.name = "MethodNotAllowedError";
     this.action = "Verify if HTTP method is correct for this endpoint.";
     this.status_code = 405;
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      action: this.action,
+      status_code: this.status_code,
+    };
+  }
+}
+
+export class ServiceError extends Error {
+  constructor({ cause, message }) {
+    super(message || "A service error occurred.", { cause });
+    this.name = "ServiceError";
+    this.action = "Verify if the service is available.";
+    this.status_code = 503;
   }
 
   toJSON() {
