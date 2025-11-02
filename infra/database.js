@@ -10,7 +10,7 @@ async function query(queryObject) {
     return result;
   } catch (error) {
     const serviceErrorObject = new ServiceError({
-      message: "Failed to connect to the database.",
+      message: "Failed to connect to the database or execute query.",
       cause: error,
     });
     throw serviceErrorObject;
