@@ -51,3 +51,38 @@ export class ServiceError extends Error {
     };
   }
 }
+
+export class ValidationError extends Error {
+  constructor({ message, action, status_code }) {
+    super(message || "A validation error occurred.");
+    this.name = "ValidationError";
+    this.action = action || "Verify if the data is valid.";
+    this.status_code = status_code || 400;
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      action: this.action,
+      status_code: this.status_code,
+    };
+  }
+}
+export class NotFoundError extends Error {
+  constructor({ message, action, status_code }) {
+    super(message || "The requested resource was not found.");
+    this.name = "NotFoundError";
+    this.action = action || "Verify if the resource exists.";
+    this.status_code = status_code || 404;
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      action: this.action,
+      status_code: this.status_code,
+    };
+  }
+}
