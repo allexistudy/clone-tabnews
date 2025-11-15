@@ -1,4 +1,4 @@
-const { default: orchestrator } = require("tests/orchestrator");
+import orchestrator from "tests/orchestrator";
 
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
@@ -15,13 +15,7 @@ describe("GET /api/v1/users/[username]", () => {
         password: "password",
       };
 
-      await fetch("http://localhost:3000/api/v1/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      await orchestrator.createUser(data);
 
       const endpointUrl = `http://localhost:3000/api/v1/users/${data.username}`;
       const response = await fetch(endpointUrl);
@@ -45,13 +39,7 @@ describe("GET /api/v1/users/[username]", () => {
         password: "password",
       };
 
-      await fetch("http://localhost:3000/api/v1/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      await orchestrator.createUser(data);
 
       const endpointUrl = `http://localhost:3000/api/v1/users/${data.username.toLowerCase()}`;
       const response = await fetch(endpointUrl);
