@@ -57,6 +57,36 @@ async function getByUsername(username) {
   }
 }
 
+async function getByEmail(email) {
+  const foundUser = await runSelectQuery(email);
+  return foundUser;
+
+  async function runSelectQuery(email) {
+    const result = await database.query({
+      text: `
+        SELECT
+          *
+        FROM
+          users
+        WHERE
+          LOWER(email) = LOWER($1)
+        LIMIT
+          1
+      ;`,
+      values: [email],
+    });
+
+    if (result.rowCount === 0) {
+      throw new NotFoundError({
+        message: "User not found",
+        action: "Try a different email",
+      });
+    }
+
+    return result.rows[0];
+  }
+}
+
 async function update(username, userInputValues) {
   const currentUser = await getByUsername(username);
 
@@ -155,6 +185,7 @@ const user = {
   create,
   getByUsername,
   update,
+  getByEmail,
 };
 
 export default user;
