@@ -86,3 +86,21 @@ export class NotFoundError extends Error {
     };
   }
 }
+
+export class UnauthorizedError extends Error {
+  constructor({ message, action, status_code }) {
+    super(message || "Authentication failed.");
+    this.name = "UnauthorizedError";
+    this.action = action || "Verify if the email and password are correct.";
+    this.status_code = status_code || 401;
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      action: this.action,
+      status_code: this.status_code,
+    };
+  }
+}
