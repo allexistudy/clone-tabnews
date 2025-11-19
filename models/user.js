@@ -27,6 +27,36 @@ async function create(userInputValues) {
   }
 }
 
+async function findById(userId) {
+  const foundUser = await runSelectQuery(userId);
+  return foundUser;
+
+  async function runSelectQuery(id) {
+    const result = await database.query({
+      text: `
+        SELECT
+          *
+        FROM
+          users
+        WHERE
+          id = $1
+        LIMIT
+          1
+      ;`,
+      values: [id],
+    });
+
+    if (result.rowCount === 0) {
+      throw new NotFoundError({
+        message: "User not found",
+        action: "Try a different user ID",
+      });
+    }
+
+    return result.rows[0];
+  }
+}
+
 async function getByUsername(username) {
   const foundUser = await runSelectQuery(username);
   return foundUser;
@@ -186,6 +216,7 @@ const user = {
   getByUsername,
   update,
   getByEmail,
+  findById,
 };
 
 export default user;
