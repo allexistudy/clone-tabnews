@@ -76,6 +76,9 @@ async function getLastEmail() {
   );
   const emails = await response.json();
   const lastEmail = emails.pop();
+  if (!lastEmail) {
+    return null;
+  }
 
   const emailTextResponse = await fetch(
     `http://${process.env.EMAIL_HTTP_HOST}:${process.env.EMAIL_HTTP_PORT}/messages/${lastEmail.id}.plain`,
