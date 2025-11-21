@@ -38,6 +38,7 @@
     "next": "16.0.0",
     "next-connect": "1.0.0",
     "node-pg-migrate": "7.9.1",
+    "nodemailer": "7.0.5",
     "pg": "8.16.3",
     "react": "19.2.0",
     "react-dom": "19.2.0",
