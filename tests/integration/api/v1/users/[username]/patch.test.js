@@ -121,7 +121,7 @@ describe("PATCH /api/v1/users/[username]", () => {
         username: `${username}-different`,
         email: createdUser.email,
         password: responseBody.password,
-        features: [],
+        features: ["read:activation_token"],
         created_at: responseBody.created_at,
         updated_at: responseBody.updated_at,
       });
@@ -150,7 +150,7 @@ describe("PATCH /api/v1/users/[username]", () => {
         username: createdUser.username,
         email: `unique-email-different@example.com`,
         password: responseBody.password,
-        features: [],
+        features: ["read:activation_token"],
         created_at: responseBody.created_at,
         updated_at: responseBody.updated_at,
       });
@@ -177,7 +177,7 @@ describe("PATCH /api/v1/users/[username]", () => {
         username: createdUser.username,
         email: createdUser.email,
         password: responseBody.password,
-        features: [],
+        features: ["read:activation_token"],
         created_at: responseBody.created_at,
         updated_at: responseBody.updated_at,
       });
