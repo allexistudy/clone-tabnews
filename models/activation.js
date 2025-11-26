@@ -1,5 +1,6 @@
 import database from "infra/database";
 import email from "infra/email";
+import { NotFoundError } from "infra/errors";
 import webserver from "infra/webserver";
 
 async function sendEmailToUser(user, activationToken) {
@@ -40,11 +41,11 @@ async function create(userId) {
   }
 }
 
-async function findByUserId(userId) {
-  const activationToken = await runSelectQuery(userId);
+async function findByTokenId(tokenId) {
+  const activationToken = await runSelectQuery(tokenId);
   return activationToken;
 
-  async function runSelectQuery(userId) {
+  async function runSelectQuery(tokenId) {
     const result = await database.query({
       text: `
       SELECT
@@ -52,12 +53,22 @@ async function findByUserId(userId) {
       FROM
         user_activation_tokens
       WHERE
-        user_id = $1
+        id = $1
+        AND expires_at > NOW()
+        AND used_at IS NULL
       LIMIT
         1
       ;`,
-      values: [userId],
+      values: [tokenId],
     });
+
+    if (result.rowCount === 0) {
+      throw new NotFoundError({
+        message: "Activation token not found",
+        action: "Try a different token",
+      });
+    }
+
     return result.rows[0];
   }
 }
@@ -65,7 +76,7 @@ async function findByUserId(userId) {
 const activation = {
   sendEmailToUser,
   create,
-  findByUserId,
+  findByTokenId,
 };
 
 export default activation;
