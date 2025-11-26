@@ -1,11 +1,13 @@
 import * as cookie from "cookie";
 import session from "models/session";
+import user from "models/user";
 const {
   MethodNotAllowedError,
   InternalServerError,
   ValidationError,
   NotFoundError,
   UnauthorizedError,
+  ForbiddenError,
 } = require("./errors");
 
 function onNoMatchHandler(request, response) {
@@ -14,7 +16,11 @@ function onNoMatchHandler(request, response) {
 }
 
 function onErrorHandler(error, request, response) {
-  if (error instanceof ValidationError || error instanceof NotFoundError) {
+  if (
+    error instanceof ValidationError ||
+    error instanceof NotFoundError ||
+    error instanceof ForbiddenError
+  ) {
     return response.status(error.status_code).json(error);
   }
 
@@ -50,6 +56,51 @@ function clearSessionCookie(response) {
   response.setHeader("Set-Cookie", setCookie);
 }
 
+async function injectAnonymousOrUser(request, response, next) {
+  const sessionId = request.cookies?.session_id;
+  if (sessionId) {
+    await injectAuthenticatedUser(request);
+  } else {
+    injectAnonymousUser(request);
+  }
+  return next();
+
+  async function injectAuthenticatedUser(request) {
+    const sessionToken = request.cookies?.session_id;
+    const sessionObject = await session.findByValidToken(sessionToken);
+    const userObject = await user.findById(sessionObject.user_id);
+
+    request.context = {
+      ...request.context,
+      user: userObject,
+    };
+  }
+
+  function injectAnonymousUser(request) {
+    const anonymousUserObject = {
+      features: ["read:activation_token", "create:session", "create:user"],
+    };
+
+    request.context = {
+      ...request.context,
+      user: anonymousUserObject,
+    };
+  }
+}
+
+function canRequest(feature) {
+  return (request, response, next) => {
+    if (request.context.user.features.includes(feature)) {
+      return next();
+    }
+
+    throw new ForbiddenError({
+      message: "You are not authorized to access this resource.",
+      action: "Verify if you have the required permissions.",
+    });
+  };
+}
+
 const controller = {
   errorHandlers: {
     onNoMatch: onNoMatchHandler,
@@ -57,6 +108,8 @@ const controller = {
   },
   setSessionCookie,
   clearSessionCookie,
+  injectAnonymousOrUser,
+  canRequest,
 };
 
 export default controller;

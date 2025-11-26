@@ -104,3 +104,21 @@ export class UnauthorizedError extends Error {
     };
   }
 }
+
+export class ForbiddenError extends Error {
+  constructor({ message, action, status_code }) {
+    super(message || "Forbidden.");
+    this.name = "ForbiddenError";
+    this.action = action || "Verify if you have the required permissions.";
+    this.status_code = status_code || 403;
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      action: this.action,
+      status_code: this.status_code,
+    };
+  }
+}

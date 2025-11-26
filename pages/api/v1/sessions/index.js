@@ -1,12 +1,12 @@
+const { createRouter } = require("next-connect");
 import controller from "infra/controller";
 import authentication from "models/authentication";
 import session from "models/session";
 
-const { createRouter } = require("next-connect");
-
 const router = createRouter();
+router.use(controller.injectAnonymousOrUser);
 
-router.post(postHandler);
+router.post(controller.canRequest("create:session"), postHandler);
 router.delete(deleteHandler);
 
 async function postHandler(request, response) {
