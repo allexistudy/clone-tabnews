@@ -1,4 +1,5 @@
 import * as cookie from "cookie";
+import authorization from "models/authorization";
 import session from "models/session";
 import user from "models/user";
 const {
@@ -90,7 +91,9 @@ async function injectAnonymousOrUser(request, response, next) {
 
 function canRequest(feature) {
   return (request, response, next) => {
-    if (request.context.user.features.includes(feature)) {
+    const userTryingToAccess = request.context.user;
+
+    if (authorization.can(userTryingToAccess, feature)) {
       return next();
     }
 

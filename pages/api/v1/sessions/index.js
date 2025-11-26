@@ -1,6 +1,8 @@
 const { createRouter } = require("next-connect");
 import controller from "infra/controller";
+import { ForbiddenError } from "infra/errors";
 import authentication from "models/authentication";
+import authorization from "models/authorization";
 import session from "models/session";
 
 const router = createRouter();
@@ -16,6 +18,12 @@ async function postHandler(request, response) {
     userInputValues.email,
     userInputValues.password,
   );
+  if (!authorization.can(authenticatedUser, "create:session")) {
+    throw new ForbiddenError({
+      message: "You are not authorized to create a session.",
+      action: "Verify if you have the required permissions.",
+    });
+  }
 
   const userSession = await session.create(authenticatedUser.id);
   controller.setSessionCookie(userSession.token, response);
