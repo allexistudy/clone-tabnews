@@ -2,6 +2,7 @@ import database from "infra/database";
 import email from "infra/email";
 import { NotFoundError } from "infra/errors";
 import webserver from "infra/webserver";
+import user from "./user";
 
 async function sendEmailToUser(user, activationToken) {
   await email.send({
@@ -73,10 +74,40 @@ async function findByTokenId(tokenId) {
   }
 }
 
+async function use(tokenId) {
+  const usedActivationToken = await runUpdateQuery(tokenId);
+  return usedActivationToken;
+
+  async function runUpdateQuery(tokenId) {
+    const result = await database.query({
+      text: `
+      UPDATE
+        user_activation_tokens
+      SET
+        used_at = timezone('utc', now()),
+        updated_at = timezone('utc', now())
+      WHERE
+        id = $1
+      RETURNING
+        *
+      ;`,
+      values: [tokenId],
+    });
+    return result.rows[0];
+  }
+}
+
+async function activateUser(userId) {
+  const activatedUser = await user.setFeatures(userId, ["create:session"]);
+  return activatedUser;
+}
+
 const activation = {
   sendEmailToUser,
   create,
   findByTokenId,
+  use,
+  activateUser,
 };
 
 export default activation;
