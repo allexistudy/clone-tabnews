@@ -117,4 +117,35 @@ describe("POST /api/v1/users", () => {
       });
     });
   });
+
+  describe("Authenticated user", () => {
+    test("With unique and valid data", async () => {
+      const createdUser = await orchestrator.createUser({});
+      await orchestrator.activateUserByUserId(createdUser.id);
+      const userSession = await orchestrator.createSession(createdUser.id);
+
+      const headers = new Headers();
+      headers.set("Cookie", `session_id=${userSession.token}`);
+      headers.set("Content-Type", "application/json");
+
+      const response = await fetch("http://localhost:3000/api/v1/users", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          username: "authenticated-user",
+          email: "authenticated-user@example.com",
+          password: "password",
+        }),
+      });
+      expect(response.status).toBe(403);
+
+      const responseBody = await response.json();
+      expect(responseBody).toEqual({
+        name: "ForbiddenError",
+        message: "You are not authorized to access this resource.",
+        action: "Verify if you have the required permissions.",
+        status_code: 403,
+      });
+    });
+  });
 });
