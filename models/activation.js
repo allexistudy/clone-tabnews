@@ -1,8 +1,9 @@
 import database from "infra/database";
 import email from "infra/email";
-import { NotFoundError } from "infra/errors";
+import { ForbiddenError, NotFoundError } from "infra/errors";
 import webserver from "infra/webserver";
 import user from "./user";
+import authorization from "./authorization";
 
 async function sendEmailToUser(user, activationToken) {
   await email.send({
@@ -98,6 +99,14 @@ async function use(tokenId) {
 }
 
 async function activateUser(userId) {
+  const userToActivate = await user.findById(userId);
+  if (!authorization.can(userToActivate, "read:activation_token")) {
+    throw new ForbiddenError({
+      message: "You are not authorized to activate this user.",
+      action: "Verify if you have the required permissions.",
+    });
+  }
+
   const activatedUser = await user.setFeatures(userId, [
     "create:session",
     "read:session",
@@ -111,6 +120,7 @@ const activation = {
   findByTokenId,
   use,
   activateUser,
+  EXPIRATION_IN_MILLISECONDS,
 };
 
 export default activation;
