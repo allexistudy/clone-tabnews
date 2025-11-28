@@ -9,11 +9,29 @@ beforeAll(async () => {
 });
 
 describe("GET /api/v1/user", () => {
+  describe("Anonymous user", () => {
+    test("Retrieving endpoint", async () => {
+      const response = await fetch("http://localhost:3000/api/v1/user");
+      expect(response.status).toBe(403);
+
+      const responseBody = await response.json();
+      expect(responseBody).toEqual({
+        name: "ForbiddenError",
+        message: "You are not authorized to access this resource.",
+        action: "Verify if you have the required permissions.",
+        status_code: 403,
+      });
+    });
+  });
+
   describe("Authenticated user", () => {
     test("With valid session", async () => {
       const createdUser = await orchestrator.createUser({
         username: "user-with-valid-session",
       });
+      const activatedUser = await orchestrator.activateUserByUserId(
+        createdUser.id,
+      );
       const createdSession = await orchestrator.createSession(createdUser.id);
 
       const headers = new Headers();
@@ -36,9 +54,9 @@ describe("GET /api/v1/user", () => {
         username: "user-with-valid-session",
         email: createdUser.email,
         password: createdUser.password,
-        features: ["read:activation_token"],
+        features: ["create:session", "read:session"],
         created_at: createdUser.created_at.toISOString(),
-        updated_at: createdUser.updated_at.toISOString(),
+        updated_at: activatedUser.updated_at.toISOString(),
       });
 
       const renewedSession = await session.findByValidToken(
@@ -67,6 +85,9 @@ describe("GET /api/v1/user", () => {
       const createdUser = await orchestrator.createUser({
         username: "user-almost-expired-session",
       });
+      const activatedUser = await orchestrator.activateUserByUserId(
+        createdUser.id,
+      );
       const createdSession = await orchestrator.createSession(createdUser.id);
 
       jest.useRealTimers();
@@ -86,9 +107,9 @@ describe("GET /api/v1/user", () => {
         username: "user-almost-expired-session",
         email: createdUser.email,
         password: createdUser.password,
-        features: ["read:activation_token"],
+        features: ["create:session", "read:session"],
         created_at: createdUser.created_at.toISOString(),
-        updated_at: createdUser.updated_at.toISOString(),
+        updated_at: activatedUser.updated_at.toISOString(),
       });
 
       const renewedSession = await session.findByValidToken(

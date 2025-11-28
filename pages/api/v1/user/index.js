@@ -5,8 +5,9 @@ import user from "models/user";
 const { createRouter } = require("next-connect");
 
 const router = createRouter();
+router.use(controller.injectAnonymousOrUser);
 
-router.get(getHandler);
+router.get(controller.canRequest("read:session"), getHandler);
 
 export default router.handler(controller.errorHandlers);
 
