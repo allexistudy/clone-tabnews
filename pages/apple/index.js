@@ -97,7 +97,7 @@ export default function ApplePayPage() {
         supportedMethods: "https://apple.com/apple-pay",
         data: {
           version: 3,
-          merchantIdentifier: "merchant.com.example", // Placeholder - não é necessário para POC
+          merchantIdentifier: "merchant.onlineips.lubyapplepay",
           countryCode: currency === "BRL" ? "BR" : "US",
           currencyCode: currency,
           supportedNetworks: ["visa", "masterCard", "amex", "discover"],
@@ -122,44 +122,116 @@ export default function ApplePayPage() {
 
       // Mostrar interface do Apple Pay
       const paymentResponse = await paymentRequest.show();
+      console.log("paymentResponse", paymentResponse);
 
       addLog("success", "Pagamento autorizado pelo usuário");
 
       // Capturar dados do pagamento
-      const paymentData = paymentResponse.details;
+      const rawDetails = paymentResponse.details ?? {};
 
-      // Extrair informações específicas
+      // Detectar ambiente (sandbox vs produção)
+      const isSandbox =
+        window.location.hostname.includes("localhost") ||
+        window.location.hostname.includes("127.0.0.1") ||
+        window.location.hostname.includes("test") ||
+        window.location.hostname.includes("sandbox");
+
+      addLog(
+        "info",
+        `Ambiente detectado: ${isSandbox ? "SANDBOX (Teste)" : "PRODUÇÃO"}`,
+      );
+
+      // Log completo para debug
+      addLog("info", "Raw paymentResponse.details completo", {
+        ...rawDetails,
+        environment: isSandbox ? "sandbox" : "production",
+      });
+
+      // Apple Pay retorna o token em paymentData (string JSON)
+      // O formato típico é: { paymentData: "string JSON com token" }
+      let paymentDataString = null;
+      let paymentDataParsed = null;
+
+      // Tentar diferentes caminhos onde o token pode estar
+      if (rawDetails.paymentData) {
+        paymentDataString = rawDetails.paymentData;
+      } else if (rawDetails.token) {
+        paymentDataString = rawDetails.token;
+      } else if (typeof rawDetails === "string") {
+        paymentDataString = rawDetails;
+      }
+
+      // Se paymentData é uma string, tentar fazer parse
+      if (typeof paymentDataString === "string") {
+        try {
+          paymentDataParsed = JSON.parse(paymentDataString);
+          addLog("info", "paymentData parseado com sucesso");
+        } catch (e) {
+          addLog("warning", "paymentData não é um JSON válido", {
+            error: e.message,
+            rawString: paymentDataString.substring(0, 100) + "...",
+          });
+        }
+      } else if (paymentDataString && typeof paymentDataString === "object") {
+        paymentDataParsed = paymentDataString;
+      }
+
+      // Extrair dados específicos
+      // O formato do Apple Pay token geralmente é:
+      // { header: { ephemeralPublicKey: "...", ... }, data: "..." }
+      const tokenData = paymentDataParsed || paymentDataString || rawDetails;
+
+      const header = tokenData?.header || null;
+      const data = tokenData?.data || paymentDataString || null;
+      const ephemeralPublicKey = header?.ephemeralPublicKey || null;
+
+      // Extrair informações específicas solicitadas
       const extractedData = {
+        environment: isSandbox ? "sandbox" : "production",
         paymentData: {
-          data: paymentData.data,
+          data: data,
           header: {
-            ephemeralPublicKey: paymentData.header?.ephemeralPublicKey,
+            ephemeralPublicKey: ephemeralPublicKey,
+            transactionId: header?.transactionId,
+            publicKeyHash: header?.publicKeyHash,
+            applicationData: header?.applicationData,
           },
         },
-        complete: paymentData.complete,
-        methodName: paymentData.methodName,
-        payerEmail: paymentData.payerEmail,
-        payerName: paymentData.payerName,
-        payerPhone: paymentData.payerPhone,
-        shippingAddress: paymentData.shippingAddress,
-        shippingOption: paymentData.shippingOption,
+        rawDetails: rawDetails,
+        parsedToken: paymentDataParsed,
+        rawPaymentDataString:
+          typeof paymentDataString === "string"
+            ? paymentDataString.substring(0, 200) +
+              (paymentDataString.length > 200 ? "..." : "")
+            : null,
+        note: isSandbox
+          ? "Este é um pagamento de teste em ambiente sandbox. Os dados são reais do Apple Pay, mas não há cobrança real."
+          : "Este é um pagamento em ambiente de produção.",
       };
 
       addLog("success", "Dados do pagamento capturados", extractedData);
 
       // Mostrar dados específicos solicitados
       addLog("info", "=== DADOS ESPECÍFICOS SOLICITADOS ===");
-      if (paymentData.data) {
-        addLog("success", "paymentData.data", paymentData.data);
+
+      if (data) {
+        addLog("success", "paymentData.data encontrado", {
+          type: typeof data,
+          length: typeof data === "string" ? data.length : "N/A",
+          preview:
+            typeof data === "string"
+              ? data.substring(0, 100) + (data.length > 100 ? "..." : "")
+              : data,
+        });
       } else {
         addLog("warning", "paymentData.data não encontrado");
       }
 
-      if (paymentData.header?.ephemeralPublicKey) {
+      if (ephemeralPublicKey) {
         addLog(
           "success",
-          "paymentData.header.ephemeralPublicKey",
-          paymentData.header.ephemeralPublicKey,
+          "paymentData.header.ephemeralPublicKey encontrado",
+          ephemeralPublicKey,
         );
       } else {
         addLog(
@@ -173,6 +245,7 @@ export default function ApplePayPage() {
 
       addLog("success", "Pagamento processado com sucesso");
     } catch (error) {
+      console.log("error", error);
       if (error.name === "AbortError") {
         addLog("warning", "Pagamento cancelado pelo usuário");
       } else {
@@ -217,6 +290,179 @@ export default function ApplePayPage() {
       >
         Apple Pay POC
       </h1>
+
+      <div
+        style={{
+          backgroundColor: "#fff3cd",
+          padding: "1.5rem",
+          borderRadius: "8px",
+          marginBottom: "2rem",
+          borderLeft: "4px solid #ffc107",
+        }}
+      >
+        <h2
+          style={{
+            marginTop: 0,
+            marginBottom: "1rem",
+            fontSize: "1.25rem",
+            fontWeight: "600",
+          }}
+        >
+          🧪 Como Configurar Ambiente Sandbox (Teste Real):
+        </h2>
+        <p style={{ marginTop: 0, marginBottom: "1rem" }}>
+          Para simular pagamentos reais e obter a resposta exata do Apple Pay
+          (sem dados fake):
+        </p>
+        <ol style={{ margin: 0, paddingLeft: "1.5rem", lineHeight: "1.8" }}>
+          <li>
+            <strong>Criar conta de testador no App Store Connect:</strong>
+            <ul style={{ marginTop: "0.5rem", paddingLeft: "1.5rem" }}>
+              <li>
+                Acesse{" "}
+                <a
+                  href="https://appstoreconnect.apple.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "#1976d2", textDecoration: "underline" }}
+                >
+                  App Store Connect
+                </a>
+              </li>
+              <li>Menu: Usuários e Acesso → Sandbox → Testadores</li>
+              <li>Clique em &quot;+&quot; para adicionar nova conta</li>
+              <li>
+                No dispositivo de teste: saia do iCloud e faça login com a conta
+                de testador
+              </li>
+            </ul>
+          </li>
+          <li>
+            <strong>Adicionar cartão de teste no Wallet:</strong>
+            <ul style={{ marginTop: "0.5rem", paddingLeft: "1.5rem" }}>
+              <li>Abra o app Wallet no dispositivo</li>
+              <li>
+                Toque em &quot;+&quot; → &quot;Cartão de Crédito ou Débito&quot;
+              </li>
+              <li>
+                Use cartões de teste da Apple (exemplos):
+                <ul style={{ marginTop: "0.5rem", paddingLeft: "1.5rem" }}>
+                  <li>
+                    <strong>Visa:</strong> 4532 1234 5678 9010 (qualquer data
+                    futura, qualquer CVV)
+                  </li>
+                  <li>
+                    <strong>Mastercard:</strong> 5555 5555 5555 4444
+                  </li>
+                  <li>
+                    <strong>Amex:</strong> 3782 822463 10005
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li>
+            <strong>Configurar Merchant ID no Apple Developer:</strong>
+            <ul style={{ marginTop: "0.5rem", paddingLeft: "1.5rem" }}>
+              <li>
+                Acesse{" "}
+                <a
+                  href="https://developer.apple.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "#1976d2", textDecoration: "underline" }}
+                >
+                  Apple Developer
+                </a>
+              </li>
+              <li>Certificates, Identifiers & Profiles → Identifiers</li>
+              <li>
+                Configure o Merchant ID:{" "}
+                <code
+                  style={{
+                    backgroundColor: "#f5f5f5",
+                    padding: "2px 6px",
+                    borderRadius: "3px",
+                  }}
+                >
+                  merchant.onlineips.lubyapplepay
+                </code>
+              </li>
+              <li>Associe o domínio ao Merchant ID</li>
+            </ul>
+          </li>
+        </ol>
+        <p
+          style={{
+            marginTop: "1rem",
+            marginBottom: 0,
+            fontSize: "0.875rem",
+            color: "#856404",
+            fontStyle: "italic",
+          }}
+        >
+          <strong>Importante:</strong> O ambiente sandbox retorna respostas
+          reais do Apple Pay (incluindo paymentData.data e ephemeralPublicKey),
+          mas não processa pagamentos reais. É o ambiente ideal para
+          desenvolvimento e testes.
+        </p>
+      </div>
+
+      <div
+        style={{
+          backgroundColor: "#e3f2fd",
+          padding: "1.5rem",
+          borderRadius: "8px",
+          marginBottom: "2rem",
+          borderLeft: "4px solid #2196f3",
+        }}
+      >
+        <h2
+          style={{
+            marginTop: 0,
+            marginBottom: "1rem",
+            fontSize: "1.25rem",
+            fontWeight: "600",
+          }}
+        >
+          Requisitos Técnicos:
+        </h2>
+        <ul style={{ margin: 0, paddingLeft: "1.5rem", lineHeight: "1.8" }}>
+          <li>
+            <strong>HTTPS:</strong> O site deve estar rodando em HTTPS (já
+            configurado)
+          </li>
+          <li>
+            <strong>Merchant ID:</strong> Deve estar configurado no Apple
+            Developer e associado ao domínio
+          </li>
+          <li>
+            <strong>Navegador:</strong> Safari no macOS/iOS (ou navegadores
+            compatíveis com Payment Request API)
+          </li>
+          <li>
+            <strong>Dispositivo:</strong> Apple Pay configurado no dispositivo
+            com cartão válido (ou cartão de teste em sandbox)
+          </li>
+          <li>
+            <strong>Domínio:</strong> O domínio deve estar associado ao Merchant
+            ID no Apple Developer
+          </li>
+        </ul>
+        <p
+          style={{
+            marginTop: "1rem",
+            marginBottom: 0,
+            fontSize: "0.875rem",
+            color: "#666",
+          }}
+        >
+          <strong>Nota:</strong> Se o pagamento ficar travado em
+          &quot;Processando...&quot;, verifique se o Merchant ID está
+          corretamente configurado e se o domínio está associado no Apple
+          Developer Portal.
+        </p>
+      </div>
 
       <div
         style={{
