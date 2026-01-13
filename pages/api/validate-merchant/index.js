@@ -5,6 +5,8 @@ const router = createRouter();
 
 router.post(postHandler);
 
+export default router.handler();
+
 async function postHandler(request) {
   const { validationURL } = await request.body;
 
