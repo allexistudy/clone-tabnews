@@ -23,58 +23,54 @@ async function postHandler(request, response) {
     initiativeContext:
       "clone-tabnews-git-apple-pay-test-allexis-projects.vercel.app",
   });
-  let dataResponse = null;
 
-  const req = https.request(
-    validationURL,
-    {
-      method: "POST",
-      cert,
-      key,
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(payload),
-      },
-      timeout: 5000,
-    },
-    (response) => {
-      let data = "";
-      console.log("initial data", data);
+  try {
+    const merchantSession = await new Promise((resolve, reject) => {
+      const appleReq = https.request(
+        validationURL,
+        {
+          method: "POST",
+          cert,
+          key,
+          headers: {
+            "Content-Type": "application/json",
+            "Content-Length": Buffer.byteLength(payload),
+          },
+          timeout: 5000,
+        },
+        (appleRes) => {
+          let data = "";
 
-      response.on("data", (chunk) => {
-        data += chunk;
+          appleRes.on("data", (chunk) => {
+            data += chunk;
+          });
+
+          appleRes.on("end", () => {
+            try {
+              console.log("data", data);
+              resolve(JSON.parse(data));
+            } catch (err) {
+              console.log("err", err);
+              reject(new Error("Invalid JSON from Apple"));
+            }
+          });
+        },
+      );
+
+      appleReq.on("timeout", () => {
+        appleReq.destroy();
+        reject(new Error("Apple validation timeout"));
       });
 
-      response.on("end", () => {
-        console.log("data", data);
-        dataResponse = data;
-        response.status(200).json(JSON.parse(data));
-      });
-    },
-  );
+      appleReq.on("error", reject);
 
-  req.on("finish", () => {
-    if (dataResponse !== null) {
-      console.log("dataResponse on finish", dataResponse);
-      response.status(200).json(JSON.parse(dataResponse));
-    }
-  });
+      appleReq.write(payload);
+      appleReq.end();
+    });
 
-  req.on("timeout", () => {
-    req.destroy();
-    response.status(504).json({ error: "Apple validation timeout" });
-  });
-
-  req.on("error", (err) => {
-    console.error("Apple Pay validation error:", err);
-    response.status(500).json({ error: "Merchant validation failed" });
-  });
-
-  req.write(payload);
-  req.end();
-
-  if (dataResponse !== null) {
-    console.log("dataResponse", dataResponse);
-    return response.status(200).json(JSON.parse(dataResponse));
+    return response.status(200).json(merchantSession);
+  } catch (err) {
+    console.error("Validate merchant error:", err);
+    return response.status(500).json({ error: err.message });
   }
 }
