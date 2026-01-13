@@ -44,6 +44,7 @@ async function postHandler(request, response) {
       });
 
       response.on("end", () => {
+        console.log("data:", data);
         response.status(200).json(JSON.parse(data));
       });
     },
@@ -61,5 +62,4 @@ async function postHandler(request, response) {
 
   req.write(payload);
   req.end();
-  return response.status(200).json({ ok: true });
 }
