@@ -54,9 +54,10 @@ async function postHandler(request, response) {
   );
 
   req.on("finish", () => {
-    console.log("finish");
-    console.log("dataResponse on finish", dataResponse);
-    response.status(200).json(JSON.parse(dataResponse));
+    if (dataResponse !== null) {
+      console.log("dataResponse on finish", dataResponse);
+      response.status(200).json(JSON.parse(dataResponse));
+    }
   });
 
   req.on("timeout", () => {
