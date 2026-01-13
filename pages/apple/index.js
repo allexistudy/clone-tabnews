@@ -310,6 +310,7 @@ export default function ApplePayPage() {
           validationURL: event.validationURL,
         }),
       });
+      console.log("res", res);
 
       const merchantSession = await res.json();
       session.completeMerchantValidation(merchantSession);

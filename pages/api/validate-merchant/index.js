@@ -24,43 +24,29 @@ async function postHandler(request, response) {
       "clone-tabnews-git-apple-pay-test-allexis-projects.vercel.app",
   });
 
-  const req = https.request(
-    validationURL,
-    {
+  try {
+    const agent = new https.Agent({ cert, key });
+
+    const appleResponse = await fetch(validationURL, {
       method: "POST",
-      cert,
-      key,
       headers: {
         "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(payload),
       },
-      timeout: 5000,
-    },
-    (response) => {
-      let data = "";
-      console.log("initial data", data);
+      body: JSON.stringify(payload),
+      agent,
+    });
 
-      response.on("data", (chunk) => {
-        data += chunk;
-      });
+    if (!appleResponse.ok) {
+      const text = await appleResponse.text();
+      console.error("Apple error:", text);
+      return response.status(500).json({ error: "Apple validation failed" });
+    }
 
-      response.on("end", () => {
-        console.log("data", data);
-        response.status(200).json(JSON.parse(data));
-      });
-    },
-  );
-
-  req.on("timeout", () => {
-    req.destroy();
-    response.status(504).json({ error: "Apple validation timeout" });
-  });
-
-  req.on("error", (err) => {
-    console.error("Apple Pay validation error:", err);
-    response.status(500).json({ error: "Merchant validation failed" });
-  });
-
-  req.write(payload);
-  req.end();
+    const merchantSession = await appleResponse.json();
+    console.log("merchantSession", merchantSession);
+    return response.status(200).json(merchantSession);
+  } catch (err) {
+    console.error("Validate merchant error:", err);
+    return response.status(500).json({ error: "Internal error" });
+  }
 }
