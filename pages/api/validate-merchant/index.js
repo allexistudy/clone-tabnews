@@ -38,13 +38,14 @@ async function postHandler(request, response) {
     },
     (response) => {
       let data = "";
+      console.log("initial data", data);
 
       response.on("data", (chunk) => {
         data += chunk;
       });
 
       response.on("end", () => {
-        console.log("data:", data);
+        console.log("data", data);
         response.status(200).json(JSON.parse(data));
       });
     },
