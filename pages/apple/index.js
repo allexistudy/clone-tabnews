@@ -6,7 +6,7 @@ export default function ApplePayPage() {
   const [logs, setLogs] = useState([]);
   const [isSupported, setIsSupported] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [token, setToken] = useState(null);
+  const [token, setToken] = useState("");
   useEffect(() => {
     // Verificar suporte do navegador para Payment Request API
     const checkSupport = () => {
