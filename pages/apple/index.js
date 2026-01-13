@@ -6,7 +6,7 @@ export default function ApplePayPage() {
   const [logs, setLogs] = useState([]);
   const [isSupported, setIsSupported] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-
+  const [token, setToken] = useState(null);
   useEffect(() => {
     // Verificar suporte do navegador para Payment Request API
     const checkSupport = () => {
@@ -319,12 +319,10 @@ export default function ApplePayPage() {
     // ✅ AQUI CHEGA O TOKEN
     session.onpaymentauthorized = (event) => {
       const token = event.payment.token;
-      console.log("token", JSON.stringify(token, null, 2));
+      console.log("token", token);
+      setToken(token);
 
-      console.log(
-        "paymentData.data:",
-        JSON.stringify(token.paymentData, null, 2),
-      );
+      console.log("paymentData.data:", token.paymentData);
       console.log(
         "ephemeralPublicKey:",
         token.paymentData.header.ephemeralPublicKey,
@@ -340,6 +338,10 @@ export default function ApplePayPage() {
     <div style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
       <div>
         <button onClick={handleNewApplePay}>apple pay</button>
+
+        <pre style={{ marginTop: "2rem" }}>
+          {JSON.stringify(token, null, 2)}
+        </pre>
       </div>
 
       <h1
