@@ -1,6 +1,4 @@
-// import https from "https";
-import { Agent } from "undici";
-
+import https from "https";
 const { createRouter } = require("next-connect");
 
 const router = createRouter();
@@ -25,37 +23,55 @@ async function postHandler(request, response) {
     initiativeContext:
       "clone-tabnews-git-apple-pay-test-allexis-projects.vercel.app",
   });
+  let dataResponse = null;
 
-  try {
-    const dispatcher = new Agent({
-      connect: {
-        cert,
-        key,
-      },
-    });
-
-    // const agent = new https.Agent({ cert, key });
-
-    const appleResponse = await fetch(validationURL, {
+  const req = https.request(
+    validationURL,
+    {
       method: "POST",
+      cert,
+      key,
       headers: {
         "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(payload),
       },
-      body: JSON.stringify(payload),
-      agent: dispatcher,
-    });
+      timeout: 5000,
+    },
+    (response) => {
+      let data = "";
+      console.log("initial data", data);
 
-    if (!appleResponse.ok) {
-      const text = await appleResponse.text();
-      console.error("Apple error:", text);
-      return response.status(500).json({ error: "Apple validation failed" });
-    }
+      response.on("data", (chunk) => {
+        data += chunk;
+      });
 
-    const merchantSession = await appleResponse.json();
-    console.log("merchantSession", merchantSession);
-    return response.status(200).json(merchantSession);
-  } catch (err) {
-    console.error("Validate merchant error:", err);
-    return response.status(500).json({ error: "Internal error" });
+      response.on("end", () => {
+        console.log("data", data);
+        dataResponse = data;
+        response.status(200).json(JSON.parse(data));
+      });
+    },
+  );
+
+  req.on("finish", () => {
+    console.log("finish");
+    response.status(200).json(JSON.parse(dataResponse));
+  });
+
+  req.on("timeout", () => {
+    req.destroy();
+    response.status(504).json({ error: "Apple validation timeout" });
+  });
+
+  req.on("error", (err) => {
+    console.error("Apple Pay validation error:", err);
+    response.status(500).json({ error: "Merchant validation failed" });
+  });
+
+  req.write(payload);
+  req.end();
+
+  if (dataResponse) {
+    return response.status(200).json(JSON.parse(dataResponse));
   }
 }
