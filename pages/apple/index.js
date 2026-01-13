@@ -283,8 +283,60 @@ export default function ApplePayPage() {
     }
   };
 
+  const handleNewApplePay = () => {
+    if (!window.ApplePaySession || !window.ApplePaySession.canMakePayments()) {
+      console.log("Apple Pay indisponível");
+    }
+
+    const request = {
+      countryCode: "BR",
+      currencyCode: "BRL",
+      supportedNetworks: ["visa", "masterCard"],
+      merchantCapabilities: ["supports3DS"],
+      total: {
+        label: "Teste Apple Pay",
+        amount: "0.01",
+      },
+    };
+
+    const session = new window.ApplePaySession(3, request);
+
+    // 🔐 obrigatório
+    session.onvalidatemerchant = async (event) => {
+      const res = await fetch("/api/validate-merchant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          validationURL: event.validationURL,
+        }),
+      });
+
+      const merchantSession = await res.json();
+      session.completeMerchantValidation(merchantSession);
+    };
+
+    // ✅ AQUI CHEGA O TOKEN
+    session.onpaymentauthorized = (event) => {
+      const token = event.payment.token;
+
+      console.log("paymentData.data:", token.paymentData.data);
+      console.log(
+        "ephemeralPublicKey:",
+        token.paymentData.header.ephemeralPublicKey,
+      );
+
+      session.completePayment(window.ApplePaySession.STATUS_SUCCESS);
+    };
+
+    session.begin();
+  };
+
   return (
     <div style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
+      <div>
+        <button onClick={handleNewApplePay}>apple pay</button>
+      </div>
+
       <h1
         style={{ marginBottom: "2rem", fontSize: "2rem", fontWeight: "bold" }}
       >
