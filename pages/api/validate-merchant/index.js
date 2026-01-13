@@ -1,4 +1,5 @@
 import https from "https";
+import fetch from "node-fetch";
 const { createRouter } = require("next-connect");
 
 const router = createRouter();
