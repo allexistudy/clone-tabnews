@@ -319,8 +319,12 @@ export default function ApplePayPage() {
     // ✅ AQUI CHEGA O TOKEN
     session.onpaymentauthorized = (event) => {
       const token = event.payment.token;
+      console.log("token", JSON.stringify(token, null, 2));
 
-      console.log("paymentData.data:", token.paymentData.data);
+      console.log(
+        "paymentData.data:",
+        JSON.stringify(token.paymentData, null, 2),
+      );
       console.log(
         "ephemeralPublicKey:",
         token.paymentData.header.ephemeralPublicKey,
