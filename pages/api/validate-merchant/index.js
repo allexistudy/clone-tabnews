@@ -1,5 +1,6 @@
-import https from "https";
-import fetch from "node-fetch";
+// import https from "https";
+import { Agent } from "undici";
+
 const { createRouter } = require("next-connect");
 
 const router = createRouter();
@@ -26,7 +27,14 @@ async function postHandler(request, response) {
   });
 
   try {
-    const agent = new https.Agent({ cert, key });
+    const dispatcher = new Agent({
+      connect: {
+        cert,
+        key,
+      },
+    });
+
+    // const agent = new https.Agent({ cert, key });
 
     const appleResponse = await fetch(validationURL, {
       method: "POST",
@@ -34,7 +42,7 @@ async function postHandler(request, response) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
-      agent,
+      agent: dispatcher,
     });
 
     if (!appleResponse.ok) {
