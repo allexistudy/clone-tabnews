@@ -55,6 +55,7 @@ async function postHandler(request, response) {
 
   req.on("finish", () => {
     console.log("finish");
+    console.log("dataResponse on finish", dataResponse);
     response.status(200).json(JSON.parse(dataResponse));
   });
 
@@ -71,7 +72,8 @@ async function postHandler(request, response) {
   req.write(payload);
   req.end();
 
-  if (dataResponse) {
+  if (dataResponse !== null) {
+    console.log("dataResponse", dataResponse);
     return response.status(200).json(JSON.parse(dataResponse));
   }
 }
