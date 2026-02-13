@@ -295,7 +295,7 @@ export default function ApplePayPage() {
       merchantCapabilities: ["supports3DS"],
       total: {
         label: "Teste Apple Pay",
-        amount: "0.01",
+        amount: "0.02",
       },
     };
 
